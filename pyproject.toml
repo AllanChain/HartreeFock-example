@@ -1,0 +1,7 @@
+[project]
+name = "HartreeFock-example"
+
+dependencies = ["numpy"]
+
+[tool.ruff.lint]
+extend-select = ["I001"]
