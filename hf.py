@@ -74,7 +74,7 @@ def eval_S_and_H(
     )
     atom_sum = np.sum(
         charges[:, None, None, None, None]
-        * erf_with_const((exp1 + exp2) * delta_new_center),
+        * erf_with_const((exp1 + exp2) * delta_new_center**2),
         axis=0,
     )
     potential_coeff = result_coeff * -2 * np.pi / (exp1 + exp2)
@@ -147,8 +147,8 @@ def read_HeH_basis():
 
     return np.array(
         [
-            [made_float(h_exp), made_float(he_exp)],
-            [made_float(h_coeff), made_float(he_coeff)],
+            [made_float(he_exp), made_float(h_exp)],
+            [made_float(he_coeff), made_float(h_coeff)],
         ]
     )
 
@@ -160,27 +160,30 @@ def made_float(data):
 def solve_HeH():
     basis = read_HeH_basis()
     nbasis = basis.shape[1]
-    centers = atoms = np.array([[0.0, 0.0, 0.0], [1.4632, 0.0, 0.0]])
-    charges = np.array([1, 2])
+    bond_length = 1.4632
+    centers = atoms = np.array([[0.0, 0.0, 0.0], [bond_length, 0.0, 0.0]])
+    charges = np.array([2, 1])
+    nuc_energy = 2 / bond_length
     density_mat = np.zeros((nbasis, nbasis))
     overlap_mat, hamiltonian_mat = eval_S_and_H(basis, centers, atoms, charges)
     two_elec_int = eval_two_elec_int(basis, centers)
     transform_mat = eval_trans_mat(overlap_mat)
     print("Overlap matrix S:", overlap_mat, sep="\n")
     print("Hamiltonian matrix H_core:", hamiltonian_mat, sep="\n")
-    print("Two-electron integral:", two_elec_int, sep="\n")
     print("Transform matrix X:", transform_mat, sep="\n")
     while True:
         fock_mat = eval_fock_mat(hamiltonian_mat, density_mat, two_elec_int)
         transformed_fock = transform_mat.T.conj() @ fock_mat @ transform_mat
         orbital_energies, transformed_coeff = np.linalg.eig(transformed_fock)
-        coeff_mat = transform_mat @ transformed_coeff @ transform_mat.T.conj()
+        # coeff_mat = transform_mat @ transformed_coeff
+        coeff_mat = np.dot(transform_mat, transformed_coeff)
         new_density_mat = eval_density_mat(coeff_mat, occupied_orbitals=1)
         total_energy = np.trace(density_mat @ (hamiltonian_mat + fock_mat)) / 2
-        print("Total energy:", total_energy)
+        # FIXME: They are old steps
+        print("Total energy:", total_energy + nuc_energy)
         print("Orbital energies:", orbital_energies)
         print("Occupation:", np.diag(density_mat * overlap_mat))
-        if np.allclose(new_density_mat, density_mat, atol=1e-5):
+        if np.allclose(new_density_mat, density_mat, atol=1e-6):
             break
         density_mat = new_density_mat
 
