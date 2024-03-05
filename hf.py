@@ -30,7 +30,7 @@ def eval_S_and_H(
     centers: np.ndarray,
     atoms: np.ndarray,
     charges: np.ndarray,
-) -> tuple[np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray, np.array]:
     """Calculate essential constants for basis
 
     Args:
@@ -66,7 +66,6 @@ def eval_S_and_H(
 
     kinetic_coeff = harmonic_mean * (3 - 2 * harmonic_mean * delta_center**2)
     kinetic_mat = np.sum(kinetic_coeff * overlap_coeff * result_exp, axis=(-2, -1))
-    print("Kinetic matrix T:", kinetic_mat, sep="\n")
 
     # of shape (natom, nbasis, nbasis, ngaussian, ngaussian)
     delta_new_center = np.linalg.norm(
@@ -79,9 +78,8 @@ def eval_S_and_H(
     )
     potential_coeff = result_coeff * -2 * np.pi / (exp1 + exp2)
     potential_mat = np.sum(potential_coeff * atom_sum * result_exp, axis=(-2, -1))
-    print("Potential matrix V:", potential_mat, sep="\n")
 
-    return overlap_mat, kinetic_mat + potential_mat
+    return overlap_mat, kinetic_mat, potential_mat
 
 
 def eval_two_elec_int(basis: np.ndarray, centers: np.ndarray) -> np.ndarray:
@@ -164,15 +162,27 @@ def solve_HeH():
     centers = atoms = np.array([[0.0, 0.0, 0.0], [bond_length, 0.0, 0.0]])
     charges = np.array([1, 2])
     nuc_energy = 2 / bond_length
-    density_mat = np.zeros((nbasis, nbasis))
-    overlap_mat, hamiltonian_mat = eval_S_and_H(basis, centers, atoms, charges)
+
+    overlap_mat, kinetic_mat, potential_mat = eval_S_and_H(
+        basis, centers, atoms, charges
+    )
+    print("=" * 30, "Constant Matrices".center(30), "=" * 30, sep="\n")
+    print("Overlap matrix S:", overlap_mat, sep="\n", end="\n\n")
+    print("Kinetic matrix T:", kinetic_mat, sep="\n", end="\n\n")
+    print("Potential matrix V_{ne}:", potential_mat, sep="\n", end="\n\n")
+    hamiltonian_mat = kinetic_mat + potential_mat
     two_elec_int = eval_two_elec_int(basis, centers)
+    print("Two-electron integral V_{ee}:", two_elec_int, sep="\n", end="\n\n")
+
     transform_mat = eval_trans_mat(overlap_mat)
-    print("Overlap matrix S:", overlap_mat, sep="\n")
-    print("Hamiltonian matrix H_core:", hamiltonian_mat, sep="\n")
-    print("Transform matrix X:", transform_mat, sep="\n")
+    density_mat = np.zeros((nbasis, nbasis))
+
+    print("=" * 30, "Start Iteration".center(30), "=" * 30, sep="\n")
+    i = 0
     while True:
         fock_mat = eval_fock_mat(hamiltonian_mat, density_mat, two_elec_int)
+        total_energy = np.trace(density_mat @ (hamiltonian_mat + fock_mat)) / 2
+        print(f"[iter {i:2d}] Electron total energy:", total_energy)
         transformed_fock = transform_mat.T.conj() @ fock_mat @ transform_mat
         orbital_energies, transformed_mos = np.linalg.eig(transformed_fock)
         # NOTE: If HeH is working but HHe is not, try sorting the eigenvectors.
@@ -181,14 +191,12 @@ def solve_HeH():
         orbital_energies = orbital_energies[energy_sort]
         mos = transform_mat @ transformed_mos[:, energy_sort]
         new_density_mat = eval_density_mat(mos, occupied_orbitals=1)
-        total_energy = np.trace(density_mat @ (hamiltonian_mat + fock_mat)) / 2
-        # FIXME: They are old steps
-        print("Total energy:", total_energy + nuc_energy)
-        print("Orbital energies:", orbital_energies)
-        print("Occupation:", np.diag(density_mat * overlap_mat))
         if np.allclose(new_density_mat, density_mat, atol=1e-6):
             break
         density_mat = new_density_mat
+        i += 1
+    print("Total energy:", total_energy + nuc_energy)
+    print("Orbital energies:", orbital_energies)
 
 
 if __name__ == "__main__":
