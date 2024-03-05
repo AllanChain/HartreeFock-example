@@ -147,8 +147,8 @@ def read_HeH_basis():
 
     return np.array(
         [
-            [made_float(he_exp), made_float(h_exp)],
-            [made_float(he_coeff), made_float(h_coeff)],
+            [made_float(h_exp), made_float(he_exp)],
+            [made_float(h_coeff), made_float(he_coeff)],
         ]
     )
 
@@ -162,7 +162,7 @@ def solve_HeH():
     nbasis = basis.shape[1]
     bond_length = 1.4632
     centers = atoms = np.array([[0.0, 0.0, 0.0], [bond_length, 0.0, 0.0]])
-    charges = np.array([2, 1])
+    charges = np.array([1, 2])
     nuc_energy = 2 / bond_length
     density_mat = np.zeros((nbasis, nbasis))
     overlap_mat, hamiltonian_mat = eval_S_and_H(basis, centers, atoms, charges)
@@ -174,10 +174,13 @@ def solve_HeH():
     while True:
         fock_mat = eval_fock_mat(hamiltonian_mat, density_mat, two_elec_int)
         transformed_fock = transform_mat.T.conj() @ fock_mat @ transform_mat
-        orbital_energies, transformed_coeff = np.linalg.eig(transformed_fock)
-        # coeff_mat = transform_mat @ transformed_coeff
-        coeff_mat = np.dot(transform_mat, transformed_coeff)
-        new_density_mat = eval_density_mat(coeff_mat, occupied_orbitals=1)
+        orbital_energies, transformed_mos = np.linalg.eig(transformed_fock)
+        # NOTE: If HeH is working but HHe is not, try sorting the eigenvectors.
+        # Because the occupied orbitals sort come first to make density matrix correct.
+        energy_sort = np.argsort(orbital_energies)
+        orbital_energies = orbital_energies[energy_sort]
+        mos = transform_mat @ transformed_mos[:, energy_sort]
+        new_density_mat = eval_density_mat(mos, occupied_orbitals=1)
         total_energy = np.trace(density_mat @ (hamiltonian_mat + fock_mat)) / 2
         # FIXME: They are old steps
         print("Total energy:", total_energy + nuc_energy)
