@@ -3,22 +3,39 @@ import warnings
 from pathlib import Path
 
 import numpy as np
+from matplotlib import pyplot as plt
 from scipy.special import erf
 
 
-def erf_with_const(x):
+def erf_with_const(x: np.ndarray):
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")  # ignore div by zero warning
         return np.where(x == 0, 1, np.sqrt(np.pi / x) * erf(np.sqrt(x)) / 2)
 
 
-def gnorm(exp):
-    """Gaussian normailzation factor."""
+def gnorm(exp: np.ndarray):
+    """Calculate Gaussian normailzation factor.
+
+    Args:
+        exp: shape any. The Gaussian exponent.
+
+    Returns:
+        Gaussian normailzation factor.
+    """
     # NOTE: It's important not to forget this factor.
     return (2 * exp / np.pi) ** (3 / 4)
 
 
 def get_new_center(exp1, center1, exp2, center2):
+    """Evaluate the center of the new Gaussian from two Gaussian multiplication.
+
+    Args:
+        exp1, exp2: shape (nbasis, ngaussian). The Gaussian exponents.
+        center1, center2: shape (nbasis, ngaussian, ndim). The Gaussian centers.
+
+    Returns:
+        Center of new Gaussian. Shape (nbasis, ngaussian, ndim).
+    """
     # of shape (nbasis, nbasis, ngaussian, ngaussian, ndim)
     return (exp1[..., None] * center1 + exp2[..., None] * center2) / (
         exp1[..., None] + exp2[..., None]
@@ -31,17 +48,25 @@ def eval_S_and_H(
     atoms: np.ndarray,
     charges: np.ndarray,
 ) -> tuple[np.ndarray, np.ndarray, np.array]:
-    """Calculate essential constants for basis
+    """Calculate essential constants for basis.
 
     Args:
-        basis: shape (2, nbasis, ngaussian)
-        centers: shape (nbasis, ndim)
-        atoms: shape (natom, ndim)
+        basis: shape (2, nbasis, ngaussian). The basis array.
+            The basis is composed of 2 ndarrays, stacked in the first dimension.
+            The first one is the Gaussian exponents, and the second one is the
+                coefficients for the Gaussians.
+            Note that the normailzation of the Gaussians is not included in the
+                coefficients.
+        centers: shape (nbasis, ndim). The centers of the basis.
+        atoms: shape (natom, ndim). The coordinated of the atoms.
+            It's not the same as `centers` in general, since there can be multiple
+                basis for one atom.
         charges: shape (natom,)
 
     Returns:
-        - overlap matrix S = (A|B)
-        - one-body hamiltonian matrix H_core = (A|H|B)
+        - overlap matrix S = (A|B). Shape (nbasis, nbasis).
+        - one-body kinetic matrix T = (A|T|B). Shape (nbasis, nbasis).
+        - one-body potential matrix V_{ne} = (A|V|B). Shape (nbasis, nbasis).
     """
 
     # after operations will of shape (nbasis, nbasis, ngaussian, ngaussian)
@@ -83,8 +108,15 @@ def eval_S_and_H(
 
 
 def eval_two_elec_int(basis: np.ndarray, centers: np.ndarray) -> np.ndarray:
-    """Evaluate two-electron integral (AB|CD)."""
+    """Evaluate two-electron integral (AB|CD).
 
+    Args:
+        basis: shape (2, nbasis, ngaussian). The basis array.
+        centers: shape (nbasis, ndim). The centers of the basis.
+
+    Returns:
+        Two-electron integral V_{ee} = (AB|CD). Shape (nbasis, nbasis, nbasis, nbasis).
+    """
     exp1, coeff1 = basis[:, :, None, None, None, :, None, None, None]
     exp2, coeff2 = basis[:, None, :, None, None, None, :, None, None]
     exp3, coeff3 = basis[:, None, None, :, None, None, None, :, None]
@@ -116,6 +148,14 @@ def eval_two_elec_int(basis: np.ndarray, centers: np.ndarray) -> np.ndarray:
 
 
 def eval_trans_mat(overlap_mat: np.ndarray) -> np.ndarray:
+    """Get the transformation matrix X with canonical orthogonalization.
+
+    Args:
+        overlap_mat: shape (nbasis, nbasis). The overlap matrix S.
+
+    Returns:
+        The transform matrix X. Shape (nbasis, nbasis).
+    """
     # eigenvectors[:, i] is the ith eigenvector
     eigenvalues, eigenvectors = np.linalg.eig(overlap_mat)
     return eigenvectors / np.sqrt(eigenvalues)
@@ -124,17 +164,43 @@ def eval_trans_mat(overlap_mat: np.ndarray) -> np.ndarray:
 def eval_fock_mat(
     hamiltonian_mat: np.ndarray, density_mat: np.ndarray, two_elec_int: np.ndarray
 ) -> np.ndarray:
+    """Evalute the Fock matrix F.
+
+    Args:
+        hamiltonian_mat: shape (nbasis, nbasis). The Hamiltonian matrix H_{core}.
+        density_mat: shape (nbasis, nbasis). The density matrix P.
+        two_elec_int: shape (nbasis, nbasis, nbasis, nbasis). Two-electron integral.
+
+    Returns:
+        The Fock matrix F. Shape (nbasis, nbasis).
+    """
     j_term = np.einsum("ls,mnsl->mn", density_mat, two_elec_int)
     k_term = -np.einsum("ls,mlsn->mn", density_mat, two_elec_int) / 2
     return hamiltonian_mat + j_term + k_term
 
 
-def eval_density_mat(coeff_mat: np.ndarray, occupied_orbitals: int) -> np.ndarray:
-    coeff_occupied = coeff_mat[:, :occupied_orbitals]
-    return 2 * np.sum(coeff_occupied.conj() * coeff_occupied[:, None, :], axis=-1)
+def eval_density_mat(mos: np.ndarray, occupied_orbitals: int) -> np.ndarray:
+    """Evaluate the desity matrix P.
+
+    Assuming that the MO is ordered from the lowest energy to highest energy.
+
+    Args:
+        mos: shape (nbasis, nbasis). The MO matrix C.
+        occupied_orbitals: Number of occupied orbitals. For HeH+, it's always 1.
+
+    Returns:
+        The density matrix P. Shape (nbasis, nbasis).
+    """
+    mos_occupied = mos[:, :occupied_orbitals]
+    return 2 * np.sum(mos_occupied.conj() * mos_occupied[:, None, :], axis=-1)
 
 
 def read_HeH_basis():
+    """Read the basis for HeH from sto-3g.json.
+
+    Returns:
+        The basis. Shape (2, nbasis, ngaussian).
+    """
     with open(Path(__file__).parent / "sto-3g.json") as f:
         sto3g = json.load(f)["elements"]
 
@@ -142,6 +208,9 @@ def read_HeH_basis():
     h_coeff = sto3g["1"]["electron_shells"][0]["coefficients"][0]
     he_exp = sto3g["2"]["electron_shells"][0]["exponents"]
     he_coeff = sto3g["2"]["electron_shells"][0]["coefficients"][0]
+
+    def made_float(data):
+        return [float(x) for x in data]
 
     return np.array(
         [
@@ -151,11 +220,37 @@ def read_HeH_basis():
     )
 
 
-def made_float(data):
-    return [float(x) for x in data]
+def plot_HeH(
+    basis: np.ndarray, centers: np.ndarray, mos: np.ndarray, occupied_orbitals: int
+):
+    """Plot the density distribution of HeH+."""
+    mos_occupied = mos[:, :occupied_orbitals]
+    print(mos_occupied)
+    # of shape (ngridx, ngridy, ngridz, ndim)
+    grids = np.stack(
+        np.meshgrid(
+            np.linspace(-1, 3, 50), np.linspace(-2, 2, 50), np.linspace(-2, 2, 50)
+        ),
+        axis=-1,
+    )
+    # of shape (nbasis, ngaussian)
+    exp, coeff = basis
+    # of shape (ngridx, ngridy, ngridz, nbasis, 1)
+    delta = np.linalg.norm(grids[..., None, :] - centers, axis=-1)[..., None]
+    # of shape (ngridx, ngridy, ngridz, nbasis)
+    basis_on_grid = np.sum(gnorm(exp) * coeff * np.exp(-exp * delta**2), axis=-1)
+    print(basis_on_grid.shape, grids.shape, delta.shape)
+    density = 2 * np.sum(
+        (np.sum(basis_on_grid[..., None] * mos_occupied, axis=-2)) ** 2, axis=-1
+    )
+    print(density.shape)
+    # plt.imshow(np.sum(density, axis=-1))
+    plt.imshow(np.sum(basis_on_grid, axis=(-2, -1)))
+    plt.show()
 
 
 def solve_HeH():
+    """The main function for solving HeH+ with Hartree-Fock."""
     basis = read_HeH_basis()
     nbasis = basis.shape[1]
     bond_length = 1.4632
@@ -197,6 +292,7 @@ def solve_HeH():
         i += 1
     print("Total energy:", total_energy + nuc_energy)
     print("Orbital energies:", orbital_energies)
+    plot_HeH(basis, centers, mos, 1)
 
 
 if __name__ == "__main__":
