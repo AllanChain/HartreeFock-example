@@ -225,11 +225,10 @@ def plot_HeH(
 ):
     """Plot the density distribution of HeH+."""
     mos_occupied = mos[:, :occupied_orbitals]
-    print(mos_occupied)
     # of shape (ngridx, ngridy, ngridz, ndim)
     grids = np.stack(
         np.meshgrid(
-            np.linspace(-1, 3, 50), np.linspace(-2, 2, 50), np.linspace(-2, 2, 50)
+            np.linspace(-1.3, 2.7, 100), np.linspace(-2, 2, 100), np.zeros(100)
         ),
         axis=-1,
     )
@@ -239,14 +238,14 @@ def plot_HeH(
     delta = np.linalg.norm(grids[..., None, :] - centers, axis=-1)[..., None]
     # of shape (ngridx, ngridy, ngridz, nbasis)
     basis_on_grid = np.sum(gnorm(exp) * coeff * np.exp(-exp * delta**2), axis=-1)
-    print(basis_on_grid.shape, grids.shape, delta.shape)
     density = 2 * np.sum(
         (np.sum(basis_on_grid[..., None] * mos_occupied, axis=-2)) ** 2, axis=-1
     )
-    print(density.shape)
-    # plt.imshow(np.sum(density, axis=-1))
-    plt.imshow(np.sum(basis_on_grid, axis=(-2, -1)))
-    plt.show()
+    plt.imshow(np.sum(density, axis=-1), cmap="Blues", interpolation="gaussian")
+    plt.scatter((np.array([0, 1.4632]) + 1.3) * 25 - 0.5, np.ones(2) * 49.5, color="C1")
+    plt.axis("off")
+    plt.tight_layout()
+    plt.savefig("density.jpg")
 
 
 def solve_HeH():
@@ -277,7 +276,7 @@ def solve_HeH():
     while True:
         fock_mat = eval_fock_mat(hamiltonian_mat, density_mat, two_elec_int)
         total_energy = np.trace(density_mat @ (hamiltonian_mat + fock_mat)) / 2
-        print(f"[iter {i:2d}] Electron total energy:", total_energy)
+        print(f"[iter {i:2d}] Electron total energy: %.6f" % total_energy)
         transformed_fock = transform_mat.T.conj() @ fock_mat @ transform_mat
         orbital_energies, transformed_mos = np.linalg.eig(transformed_fock)
         # NOTE: If HeH is working but HHe is not, try sorting the eigenvectors.
@@ -290,7 +289,7 @@ def solve_HeH():
             break
         density_mat = new_density_mat
         i += 1
-    print("Total energy:", total_energy + nuc_energy)
+    print("Total energy: %.6f" % (total_energy + nuc_energy))
     print("Orbital energies:", orbital_energies)
     plot_HeH(basis, centers, mos, 1)
 

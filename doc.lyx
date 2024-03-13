@@ -680,5 +680,279 @@ nolink "false"
  否则回到第 5 步
 \end_layout
 
+\begin_layout Section
+程序输出结果
+\end_layout
+
+\begin_layout Verbatim
+
+==============================
+\end_layout
+
+\begin_layout Verbatim
+
+      Constant Matrices
+\end_layout
+
+\begin_layout Verbatim
+
+==============================
+\end_layout
+
+\begin_layout Verbatim
+
+Overlap matrix S:
+\end_layout
+
+\begin_layout Verbatim
+
+[[1.
+         0.53681935]
+\end_layout
+
+\begin_layout Verbatim
+
+ [0.53681935 1.
+        ]]
+\end_layout
+
+\begin_layout Verbatim
+
+\end_layout
+
+\begin_layout Verbatim
+
+Kinetic matrix T:
+\end_layout
+
+\begin_layout Verbatim
+
+[[0.76003188 0.19744319]
+\end_layout
+
+\begin_layout Verbatim
+
+ [0.19744319 1.41176317]]
+\end_layout
+
+\begin_layout Verbatim
+
+\end_layout
+
+\begin_layout Verbatim
+
+Potential matrix V_{ne}:
+\end_layout
+
+\begin_layout Verbatim
+
+[[-2.49185755 -1.6292717 ]
+\end_layout
+
+\begin_layout Verbatim
+
+ [-1.6292717  -4.01004618]]
+\end_layout
+
+\begin_layout Verbatim
+
+\end_layout
+
+\begin_layout Verbatim
+
+Two-electron integral V_{ee}:
+\end_layout
+
+\begin_layout Verbatim
+
+[[[[0.77460594 0.37025079]
+\end_layout
+
+\begin_layout Verbatim
+
+   [0.37025079 0.61142525]]
+\end_layout
+
+\begin_layout Verbatim
+
+\end_layout
+
+\begin_layout Verbatim
+
+  [[0.35123656 0.2239145 ]
+\end_layout
+
+\begin_layout Verbatim
+
+   [0.2239145  0.45350297]]]
+\end_layout
+
+\begin_layout Verbatim
+
+\end_layout
+
+\begin_layout Verbatim
+
+\end_layout
+
+\begin_layout Verbatim
+
+ [[[0.3928327  0.22598329]
+\end_layout
+
+\begin_layout Verbatim
+
+   [0.22598329 0.43937276]]
+\end_layout
+
+\begin_layout Verbatim
+
+\end_layout
+
+\begin_layout Verbatim
+
+  [[0.60909675 0.44585886]
+\end_layout
+
+\begin_layout Verbatim
+
+   [0.44585886 1.05571294]]]]
+\end_layout
+
+\begin_layout Verbatim
+
+\end_layout
+
+\begin_layout Verbatim
+
+==============================
+\end_layout
+
+\begin_layout Verbatim
+
+       Start Iteration
+\end_layout
+
+\begin_layout Verbatim
+
+==============================
+\end_layout
+
+\begin_layout Verbatim
+
+[iter  0] Electron total energy:
+ 0.000000
+\end_layout
+
+\begin_layout Verbatim
+
+[iter  1] Electron total energy:
+ -4.164218
+\end_layout
+
+\begin_layout Verbatim
+
+[iter  2] Electron total energy:
+ -4.203401
+\end_layout
+
+\begin_layout Verbatim
+
+[iter  3] Electron total energy:
+ -4.205855
+\end_layout
+
+\begin_layout Verbatim
+
+[iter  4] Electron total energy:
+ -4.206048
+\end_layout
+
+\begin_layout Verbatim
+
+[iter  5] Electron total energy:
+ -4.206074
+\end_layout
+
+\begin_layout Verbatim
+
+[iter  6] Electron total energy:
+ -4.206078
+\end_layout
+
+\begin_layout Verbatim
+
+[iter  7] Electron total energy:
+ -4.206079
+\end_layout
+
+\begin_layout Verbatim
+
+[iter  8] Electron total energy:
+ -4.206080
+\end_layout
+
+\begin_layout Verbatim
+
+Total energy:
+ -2.839212
+\end_layout
+
+\begin_layout Verbatim
+
+Orbital energies:
+ [-1.62740772 -0.11414291]
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+placement document
+alignment document
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename density.jpg
+	width 60text%
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+\begin_inset Formula $\mathrm{HeH}+$
+\end_inset
+
+ 系统的电子密度分布图.
+ 左边的黄点表示氢原子,
+ 右边的黄点表示氦原子.
+ 此图仅展示了 
+\begin_inset Formula $z=0$
+\end_inset
+
+ 的截面.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
 \end_body
 \end_document
