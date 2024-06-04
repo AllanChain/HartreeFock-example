@@ -1,7 +1,8 @@
 [project]
+version = "0.0.1"
 name = "HartreeFock-example"
 
-dependencies = ["numpy"]
+dependencies = ["numpy", "scipy", "matplotlib"]
 
 [tool.ruff.lint]
 extend-select = ["I001"]
